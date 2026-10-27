@@ -966,7 +966,9 @@ fun PlayerScreen(
                 subtitleDelayMs = delay
                 onSubtitleStyleChanged(subtitleStyle.copy(delayMs = delay))
             },
-            rateSupported = player?.engine == PlayerEngine.MPV,
+            // mpv scales any track; ExoPlayer only supports external subtitles (rendered by our overlay).
+            rateSupported = player?.engine == PlayerEngine.MPV ||
+                runtimeState.subtitleTracks.firstOrNull { it.selected }?.embedded == false,
             onSubtitleRateChange = { rate ->
                 subtitleRate = rate
                 onSubtitleStyleChanged(subtitleStyle.copy(rate = rate))

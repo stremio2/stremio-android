@@ -73,10 +73,12 @@ import com.stremio.mobile.core.theme.MutedText
 import com.stremio.mobile.data.model.LIQUID_GLASS_RECOMMENDED_GLOBAL_ALPHA
 import com.stremio.mobile.data.model.LiquidGlassTuning
 import com.stremio.mobile.player.LanguageCatalog
+import com.stremio.mobile.player.PlayerEngine
 import com.stremio.mobile.player.PlayerResizeMode
 import com.stremio.mobile.player.PlayerRuntimeState
 import com.stremio.mobile.player.PlayerSubtitleStyle
 import com.stremio.mobile.player.PlayerTrackOption
+import com.stremio.mobile.player.SubtitleRatePresets
 import com.stremio.mobile.presentation.screens.player.ClassicPlayerControls
 import com.stremio.mobile.presentation.screens.player.ModernPlayerControls
 import com.stremio.mobile.presentation.screens.player.PlayerControlsActions
@@ -156,10 +158,14 @@ fun PlayerScreen(
     var subtitleDelayMs by remember(activeUri, player) {
         mutableLongStateOf(initialStreamState?.subtitleDelay ?: 0L)
     }
+    var subtitleRate by remember(activeUri, player) {
+        mutableDoubleStateOf(1.0)
+    }
     val subtitleStyle = remember(
         subtitleSizePercent,
         subtitleOffsetPercent,
         subtitleDelayMs,
+        subtitleRate,
         profileSettings?.subtitlesTextColor,
         profileSettings?.subtitlesBackgroundColor,
         profileSettings?.subtitlesOutlineColor,
@@ -169,6 +175,7 @@ fun PlayerScreen(
             sizePercent = subtitleSizePercent.coerceIn(75, 250),
             offsetPercent = subtitleOffsetPercent.coerceIn(0, 100),
             delayMs = subtitleDelayMs,
+            rate = subtitleRate,
             textColor = profileSettings?.subtitlesTextColor ?: "#FFFFFF",
             backgroundColor = profileSettings?.subtitlesBackgroundColor ?: "#00000000",
             outlineColor = profileSettings?.subtitlesOutlineColor ?: "#000000",
@@ -959,6 +966,11 @@ fun PlayerScreen(
                 subtitleDelayMs = delay
                 onSubtitleStyleChanged(subtitleStyle.copy(delayMs = delay))
             },
+            rateSupported = player?.engine == PlayerEngine.MPV,
+            onSubtitleRateChange = { rate ->
+                subtitleRate = rate
+                onSubtitleStyleChanged(subtitleStyle.copy(rate = rate))
+            },
             onImportLocalSubtitle = {
                 localSubtitleLauncher.launch(
                     arrayOf(
@@ -1136,6 +1148,8 @@ fun WebSubtitlesDialog(
     onSubtitleSizeChange: (Int) -> Unit,
     onSubtitleOffsetChange: (Int) -> Unit,
     onSubtitleDelayChange: (Long) -> Unit,
+    rateSupported: Boolean,
+    onSubtitleRateChange: (Double) -> Unit,
     onImportLocalSubtitle: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1315,6 +1329,12 @@ fun WebSubtitlesDialog(
                             max = 10.0f,
                             formatValue = { String.format(java.util.Locale.US, if (it >= 0) "+%.2f" else "%.2f", it) },
                             onChange = { onSubtitleDelayChange((it * 1000).roundToLong()) }
+                        )
+                        RateStepper(
+                            label = "FPS",
+                            rate = subtitleStyle.rate,
+                            disabled = !rateSupported,
+                            onChange = onSubtitleRateChange
                         )
                         Stepper(
                             label = "SIZE",
@@ -1873,6 +1893,79 @@ fun Stepper(
                     }
                 },
                 enabled = !increaseDisabled,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Steps through [SubtitleRatePresets] (subtitle fps -> video fps) to fix subtitles that drift
+ * because they were made for a different frame rate than the video.
+ */
+@Composable
+private fun RateStepper(
+    label: String,
+    rate: Double,
+    disabled: Boolean,
+    onChange: (Double) -> Unit
+) {
+    val presets = SubtitleRatePresets.all
+    val index = SubtitleRatePresets.indexOf(rate)
+    val valueLabel = when {
+        disabled -> "--"
+        index >= 0 -> presets[index].label
+        else -> String.format(java.util.Locale.US, "x%.4f", rate)
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.width(180.dp)
+    ) {
+        Text(
+            text = label,
+            color = Color.Gray,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0x1AFFFFFF))
+                .padding(horizontal = 4.dp, vertical = 4.dp)
+        ) {
+            ThemedIconButton(
+                imageVector = Icons.Outlined.Remove,
+                contentDescription = "Previous frame rate preset",
+                onClick = {
+                    val target = if (index < 0) 0 else (index - 1).coerceAtLeast(0)
+                    onChange(presets[target].rate)
+                },
+                enabled = !disabled && index != 0,
+                modifier = Modifier.size(40.dp)
+            )
+
+            Text(
+                text = valueLabel,
+                color = if (disabled) Color.Gray else Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.width(76.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            ThemedIconButton(
+                imageVector = Icons.Outlined.Add,
+                contentDescription = "Next frame rate preset",
+                onClick = {
+                    val target = if (index < 0) 0 else (index + 1).coerceAtMost(presets.lastIndex)
+                    onChange(presets[target].rate)
+                },
+                enabled = !disabled && index != presets.lastIndex,
                 modifier = Modifier.size(40.dp)
             )
         }

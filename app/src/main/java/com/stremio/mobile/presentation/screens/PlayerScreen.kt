@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -1215,13 +1217,13 @@ fun WebSubtitlesDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.88f)
+                .fillMaxHeight(0.94f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(surfaceColor)
                 .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
                 .padding(18.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1233,18 +1235,21 @@ fun WebSubtitlesDialog(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                     )
-                    ThemedButton(
-                        onClick = onImportLocalSubtitle,
-                        containerColor = Color.Transparent,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FileOpen,
-                            contentDescription = null,
-                            tint = AccentPurple,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("Local", color = AccentPurple, fontWeight = FontWeight.Bold)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ThemedButton(
+                            onClick = onImportLocalSubtitle,
+                            containerColor = Color.Transparent,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.FileOpen,
+                                contentDescription = null,
+                                tint = AccentPurple,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Local", color = AccentPurple, fontWeight = FontWeight.Bold)
+                        }
+                        ThemedTextButton(text = "Close", onClick = onDismiss)
                     }
                 }
 
@@ -1317,7 +1322,9 @@ fun WebSubtitlesDialog(
                     }
 
                     Column(
-                        modifier = Modifier.width(210.dp),
+                        modifier = Modifier
+                            .width(210.dp)
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -1361,11 +1368,6 @@ fun WebSubtitlesDialog(
                     }
                 }
 
-                ThemedTextButton(
-                    text = "Close",
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
-                )
             }
         }
     }

@@ -582,13 +582,17 @@ class ExoStreamPlayer(
         language: String?,
     ): ExternalSubtitle? {
         return currentSubtitles.firstOrNull { subtitle ->
-            subtitle.id == formatId || subtitle.id == groupId
+            // ExoPlayer prefixes media-item subtitle ids with the track-group index ("1:<id>").
+            formatId.matchesSubtitleId(subtitle.id) || groupId.matchesSubtitleId(subtitle.id)
         } ?: currentSubtitles.firstOrNull { subtitle ->
             subtitle.label != null &&
-                subtitle.label == label &&
+                (subtitle.label == label || buildExternalSubtitleLabel(subtitle) == label) &&
                 LanguageCatalog.matches(subtitle.lang, language)
         }
     }
+
+    private fun String?.matchesSubtitleId(id: String): Boolean =
+        this != null && (this == id || endsWith(":$id"))
 
     private fun buildExternalSubtitleLabel(subtitle: ExternalSubtitle): String {
         val base = subtitle.label?.takeIf { it.isNotBlank() } ?: subtitle.lang.uppercase(Locale.ROOT)

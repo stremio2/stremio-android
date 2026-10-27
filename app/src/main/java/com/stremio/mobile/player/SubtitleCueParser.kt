@@ -23,7 +23,7 @@ object SubtitleCueParser {
     private val timeLine = Regex(
         "((?:\\d+:)?\\d{1,2}:\\d{2}[,.]\\d{1,3})\\s*-->\\s*((?:\\d+:)?\\d{1,2}:\\d{2}[,.]\\d{1,3})"
     )
-    private val tags = Regex("<[^>]*>|\\{\\\\[^}]*}")
+    private val tags = Regex("<[^>]*>|\\{\\\\[^}]*\\}")
 
     /** Decodes subtitle bytes as UTF-8, falling back to Windows-1252 for legacy files. */
     fun decode(bytes: ByteArray): String {
